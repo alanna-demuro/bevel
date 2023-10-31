@@ -1,0 +1,98 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: supplychainvalidator3validator-node
+  namespace: supplychain-bes
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: supplychainvalidator3validator-node
+  interval: 1m
+  chart:
+   spec:
+    chart: platforms/hyperledger-besu/charts/node_validator
+    sourceRef:
+      kind: GitRepository
+      name: flux-dev
+      namespace: flux-dev
+  values:
+    replicaCount: 1
+
+    healthcheck:
+      readinessthreshold: 100
+      readinesscheckinterval: 5
+
+    staticnodes:
+      - "enode://b3a0f20338113fb9890317828cc32ebc74d5065b3d7d663407e7c8b8f05f0678b3e470dae8b3705ca6e075afb58559b86bfd49fdc4bc6e3738655ceff6a96a12@validator1.supplychain-bes.svc.cluster.local:30303"
+      - "enode://0f3fbb3000b90f6232abd6756cd2e5ec17481ade1ae88e18570d0b4795ba61e63192aa6a4a01941c5b1d36393b8cf55068c6792066c2798e2484c50706f00848@validator2.supplychain-bes.svc.cluster.local:30303"
+      - "enode://85eec4ccc87c78d59f6b27e7b054abaabe5808ad73fa75ac0d934742a4d18ebfcc5f5cf6bf8d173acc5a06eebf1dfddeb3e11f0e7700b2b664a7fcbf0acfdc57@validator3.supplychain-bes.svc.cluster.local:30303"
+      - "enode://564d8e099a9a2f57144effd74bf812011aa0e847a61a0a87eadae2b275428d5226154c837324ccabe7b99672f17fc04350c3ce5eef9f6c410f256f3da62544e3@validator4.supplychain-bes.svc.cluster.local:30303"
+      - "enode://b1ebe3a2d1e6bf6bb5ef3528ca34f5575e7880b8dac8deea4558fa5e612a4343ef374b3ab7f3e8d4a73a9e0cd91cff2198f04a200fc5d7143f3ac9bbd05b5892@carrier.carrier-bes.svc.cluster.local:30303"
+      - "enode://c52286187fad1c9abd7186ba1146a02ff683874840a0bf4994af1d5a4afd1ecae7726d4cd0bd9018d66e25900e752bf7add34515f47002759c0f54247aa8b903@manufacturer.manufacturer-bes.svc.cluster.local:30303"
+      - "enode://70ec9ec5b6f14e446917312e9162ca6fa21937e0f2381e94f6ca659c08232a2650f9d1f0f5f56c480f9731f31d7ed4251e7a1bef86f0b76fad2e8fdcfe04b776@store.store-bes.svc.cluster.local:30303"
+      - "enode://b8ffb7b2ae0b229c56efcf2042a992c4f3e3c29fbb75387371575b8c9dc4b385641523852a33245e13ef298e78e11e2296880913aac07ea67a188690f80c2e27@warehouse.warehouse-bes.svc.cluster.local:30303"
+
+    metadata:
+      namespace: supplychain-bes
+      labels:
+
+    ambassador:
+      external_url_suffix: supplychain-bes.svc.cluster.local
+
+    liveliness_check:
+      enabled: false
+    proxy:
+      provider: none
+      external_url: supplychain.supplychain-bes
+      p2p: 30303
+      rpc: 8545
+
+    images:
+      node: hyperledger/besu:22.10.2
+      alpineutils: ghcr.io/hyperledger/bevel-alpine:latest
+      pullPolicy: IfNotPresent
+
+    node:
+      name: validator3
+      tls: True
+      consensus: ibft
+      mountPath: /opt/besu/data
+      servicetype: ClusterIP
+      imagePullSecret: regcred
+      ports:
+        p2p: 30303
+        rpc: 8545
+        ws: 8546
+
+      permissioning:
+        enabled: False
+      
+    storage:
+      storageclassname: supplychain-azure-storageclass
+      storagesize: 1Gi
+
+    vault:
+      address: http://20.96.60.200:8200
+      secretengine: secretsv2
+      secretprefix: data/supplychain-bes/crypto/validator3
+      serviceaccountname: vault-auth
+      keyname: data
+      tlsdir: tls
+      role: vault-role
+      authpath: besusupplychain
+      type: hashicorp
+
+    genesis: ewogICJjb25maWciOiB7CiAgICAiY2hhaW5JZCI6IDIwMTgsCiAgICAiY29uc3RhbnRpbm9wbGVmaXhibG9jayI6IDAsCiAgICAiY29udHJhY3RTaXplTGltaXQiOiAyMTQ3NDgzNjQ3LAogICAgImliZnQyIjogewogICAgICAiYmxvY2twZXJpb2RzZWNvbmRzIjogMiwKICAgICAgImVwb2NobGVuZ3RoIjogMzAwMDAsCiAgICAgICJyZXF1ZXN0dGltZW91dHNlY29uZHMiOiAxMAogICAgfQogIH0sCiAgIm5vbmNlIjogIjB4MCIsCiAgInRpbWVzdGFtcCI6ICIweDU4ZWU0MGJhIiwKICAiZ2FzTGltaXQiOiAiMHgxZmZmZmZmZmZmZmZmZiIsCiAgImRpZmZpY3VsdHkiOiAiMHgxIiwKICAiYWxsb2MiOiB7CiAgICAiNWY5OTViZWYxOTFmRDE1OTVmZTQwYWZlODUzNWZjNDA2N0ZEOTQyMyI6IHsKICAgICAgImJhbGFuY2UiOiAiOTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiCiAgICB9LAogICAgIkIwOTBFYjQ3NjI3NjUwOTZBOTdiMUYyRTAzQzBlRTgwQUExOGRkRWMiOiB7CiAgICAgICJiYWxhbmNlIjogIjkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIgogICAgfQogIH0sCiAgImV4dHJhRGF0YSI6ICIweGY4N2VhMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDBmODU0OTRmZDQ5N2JkY2MyY2ViNWUxMGJlZDhlYzNlMDcxNGUzYTlkZjI3ZGFkOTQ3MjFkZTIxZjg1N2UxNDMwNmYwMTExMDg2ZmFmM2FiYzk0ZWE4MzZjOTQ5NTYzOWRkMjE4NGJkNGI4ZjFlN2M2NWMyOWI5MWI5NjVjZGM4MDNlOTQ4ZDFjNWEyYTU5ODVhMjExMjU2OWNjZDUxYzdhNjg5OTQ5MjNiNWZhODA4NDAwMDAwMDAwYzAiCn0=
+
+   
+    labels:  
+      service:
+        - component: besu
+      pvc:
+      deployment:
+        - owner: bevel
+        - component: besu
+
+    metrics:
+      enabled: False
+      port: 9545    
